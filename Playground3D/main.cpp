@@ -4,8 +4,16 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <iostream>
+#include <functional>
+
 #define WIDTH 800
 #define HEIGHT 600
+
+#define logInfo(msg) std::cout << msg << std::endl;
+#define logDebug(msg) std::cout << msg << std::endl;
+#define logWarning(msg) std::cout << msg << std::endl;
+#define logError(msg) std::cout << msg << std::endl;
 
 namespace playground3d
 {
@@ -33,7 +41,7 @@ namespace playground3d
 		line[1].position = sf::Vector2f(x2, y2);
 		line[1].color = sf::Color::Red;
 
-		window.draw(line, 2, sf::Lines);
+		window.draw(line, 2, sf::Points);
 	}
 
 	void drawTriangle(const Triangle& tri, sf::RenderTarget& window)
@@ -51,6 +59,56 @@ namespace playground3d
 		}
 	}
 
+	void mulVecByMat(Vertex& v, const glm::mat4& mat)
+	{
+		glm::vec4 tempVec(v.x, v.x, v.z, 1);
+
+		tempVec = mat * tempVec;
+
+		tempVec.x /= tempVec.w;
+		tempVec.y /= tempVec.w;
+		tempVec.z /= tempVec.w;
+
+		v.x = tempVec.x;
+		v.y = tempVec.y;
+
+	}
+
+	void mulTriByMat(Triangle& tri, const glm::mat4& mat)
+	{
+		mulVecByMat(tri.v0, mat);
+		mulVecByMat(tri.v1, mat);
+		mulVecByMat(tri.v2, mat);
+	}
+
+	void mulMeshByMat(Mesh& mesh, const glm::mat4& mat)
+	{
+		for (auto& tri : mesh.tris)
+		{
+			mulTriByMat(tri, mat);
+		}
+	}
+
+	void applyToVec(Vertex& v, std::function<void(Vertex& v)> func)
+	{
+		func(v);
+	}
+
+	void applyToTri(Triangle& tri, std::function<void(Vertex& v)> func)
+	{
+		applyToVec(tri.v0, func);
+		applyToVec(tri.v1, func);
+		applyToVec(tri.v2, func);
+	}
+
+	void applyToMesh(Mesh& mesh, std::function<void(Vertex& v)> func)
+	{
+		for (auto& tri : mesh.tris)
+		{
+			applyToTri(tri, func);
+		}
+	}
+
 }
 
 namespace p3d = playground3d;
@@ -62,14 +120,14 @@ int main()
 	p3d::Mesh data = {
 		{
 			{
-				{10, 10, 0},
-				{20, 20, 0},
-				{30, 10, 0}
+				{-.2f, -.2f, -10.f},
+				{.2f, -.2f, -10.f},
+				{.2f, .2f, -15.f},
 			},
 			{
-				{50, 50, 0},
-				{60, 60, 0},
-				{70, 50, 0}
+				{-.2f, -.2f, -10.f},
+				{.2f, .2f, -15.f},
+				{-.2f, .2f, -15.f},
 			}
 		}
 	};
@@ -81,7 +139,19 @@ int main()
 		100.0f             // Far clipping plane. Keep as little as possible.
 	);
 
-	glm::vec4 vec
+	// Project vertices
+	p3d::applyToMesh(data, [&](p3d::Vertex& v) {
+		p3d::mulVecByMat(v, projectionMatrix);
+	});
+
+	// Offset and scale
+	p3d::applyToMesh(data, [](p3d::Vertex& v) {
+		v.x = v.x + .5f;
+		v.y = v.y + .5f;
+
+		v.x *= WIDTH;
+		v.y *= HEIGHT;
+	});
 
 	while (window.isOpen())
 	{
