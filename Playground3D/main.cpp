@@ -9,6 +9,7 @@
 
 #define WIDTH 800
 #define HEIGHT 600
+#define PI 3.14159265359f
 
 #define logInfo(msg) std::cout << msg << std::endl;
 #define logDebug(msg) std::cout << msg << std::endl;
@@ -111,57 +112,94 @@ namespace playground3d
 
 }
 
+playground3d::Mesh originalData = {
+		{
+		// Front face
+		{
+			{-1, -1, 1},
+			{-1, 1, 1},
+			{1, 1, 1},
+		},
+		{
+			{-1, -1, 1},
+			{1, 1, 1},
+			{-1, 1, 1},
+		},
+
+		// Back face
+		{
+			{-1, -1, -1},
+			{-1, 1, -1},
+			{1, 1, -1},
+		},
+		{
+			{-1, -1, -1},
+			{1, 1, -1},
+			{-1, 1, -1},
+		},
+
+		// Right face
+		{
+			{1, -1, -1},
+			{1, -1, 1},
+			{1, 1, 1},
+		},
+		{
+			{1, -1, -1},
+			{1, 1, 1},
+			{1, 1, -1},
+		},
+
+		// Left face
+		{
+			{-1, -1, -1},
+			{-1, -1, 1},
+			{-1, 1, 1},
+		},
+		{
+			{-1, -1, -1},
+			{-1, 1, 1},
+			{-1, 1, -1},
+		},
+
+		// Top face
+		{
+			{-1, 1, -1},
+			{1, 1, -1},
+			{1, 1, 1},
+		},
+		{
+			{-1, 1, -1},
+			{1, 1, 1},
+			{-1, 1, 1},
+		},
+
+		// Bottom face
+		{
+			{-1, -1, -1},
+			{1, -1, -1},
+			{1, -1, 1},
+		},
+		{
+			{-1, -1, -1},
+			{1, -1, 1},
+			{-1, -1, 1},
+		},
+	}
+};
+
 namespace p3d = playground3d;
 
 int main()
 {
 	sf::RenderWindow window(sf::VideoMode({ WIDTH, HEIGHT }), "Playground 3D", sf::Style::Close);
 
-	p3d::Mesh data = {
-		{
-			{
-				{-.2f, .2f, -1.f},
-				{.2f, .2f, -1.f},
-				{.2f, -.2f, -2.f},
-			},
-			{
-				{-.2f, .2f, -1.f},
-				{.2f, -.2f, -2.f},
-				{-.2f, -.2f, -2.f},
-			}
-		}
-	};
-
-	//p3d::applyToMesh(data, [](p3d::Vertex& v) {
-	//	v.x = v.x + .5f;
-	//	v.y = v.y + .5f;
-	//	});
-
-	glm::mat4 projectionMatrix = glm::perspective(
-		glm::radians(90.0f), // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
-		4.0f / 3.0f,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar ?
-		0.1f,              // Near clipping plane. Keep as big as possible, or you'll get precision issues.
-		100.0f             // Far clipping plane. Keep as little as possible.
-	);
-
-	// Project vertices
-	p3d::applyToMesh(data, [&](p3d::Vertex& v) {
-		p3d::mulVecByMat(v, projectionMatrix);
-	});
-
-	// Offset and scale
-
-
-	p3d::applyToMesh(data, [](p3d::Vertex& v) {
-		v.x = (v.x + 1) / 2;
-		v.y = (v.y + 1) / 2;
-
-		v.x *= WIDTH;
-		v.y *= HEIGHT;
-		});
+	
 
 	while (window.isOpen())
 	{
+		window.clear();
+
 		// Process events
 		for (sf::Event event; window.pollEvent(event);)
 		{
@@ -174,8 +212,38 @@ int main()
 				window.close();
 		}
 
+		static float angle = 0;
+		angle += 0.005f;
+
+		p3d::Mesh data = originalData;
+
+		// Model
+		glm::mat4 model = glm::mat4(1);
+		model = glm::scale(model, glm::vec3(.1f, .1f, .1f));
+		model = glm::translate(model, glm::vec3(0, 0, -5));
+		model = glm::rotate(model, angle / 180 * PI, glm::vec3(0,1,0));
+
+		// Projection
+		glm::mat4 projection = glm::perspective( glm::radians(45.0f), 4.0f / 3.0f,  0.1f, 100.0f);
+
+		// MVP
+		glm::mat4 mvp = projection * model;
+
+		// Project vertices
+		p3d::applyToMesh(data, [&](p3d::Vertex& v) {
+			p3d::mulVecByMat(v, mvp);
+			});
+
+		// Offset and scale
+		p3d::applyToMesh(data, [](p3d::Vertex& v) {
+			v.x = (v.x + 1) / 2;
+			v.y = (v.y + 1) / 2;
+
+			v.x *= WIDTH;
+			v.y *= HEIGHT;
+			});
+		
 		p3d::drawMesh(data, window);
-		//p3d::drawLine(data.tris[0].v0.x, data.tris[0].v0.y, data.tris[0].v1.x, data.tris[0].v1.y, window);
 
 		// Finally, display the rendered frame on screen
 		window.display();
