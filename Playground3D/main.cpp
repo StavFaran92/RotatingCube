@@ -41,7 +41,7 @@ namespace playground3d
 		line[1].position = sf::Vector2f(x2, y2);
 		line[1].color = sf::Color::Red;
 
-		window.draw(line, 2, sf::Points);
+		window.draw(line, 2, sf::Lines);
 	}
 
 	void drawTriangle(const Triangle& tri, sf::RenderTarget& window)
@@ -61,7 +61,7 @@ namespace playground3d
 
 	void mulVecByMat(Vertex& v, const glm::mat4& mat)
 	{
-		glm::vec4 tempVec(v.x, v.x, v.z, 1);
+		glm::vec4 tempVec(v.x, v.y, v.z, 1);
 
 		tempVec = mat * tempVec;
 
@@ -120,20 +120,25 @@ int main()
 	p3d::Mesh data = {
 		{
 			{
-				{-.2f, -.2f, -10.f},
-				{.2f, -.2f, -10.f},
-				{.2f, .2f, -15.f},
+				{-.2f, .2f, -1.f},
+				{.2f, .2f, -1.f},
+				{.2f, -.2f, -2.f},
 			},
 			{
-				{-.2f, -.2f, -10.f},
-				{.2f, .2f, -15.f},
-				{-.2f, .2f, -15.f},
+				{-.2f, .2f, -1.f},
+				{.2f, -.2f, -2.f},
+				{-.2f, -.2f, -2.f},
 			}
 		}
 	};
 
+	//p3d::applyToMesh(data, [](p3d::Vertex& v) {
+	//	v.x = v.x + .5f;
+	//	v.y = v.y + .5f;
+	//	});
+
 	glm::mat4 projectionMatrix = glm::perspective(
-		glm::radians(45.0f), // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
+		glm::radians(90.0f), // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
 		4.0f / 3.0f,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar ?
 		0.1f,              // Near clipping plane. Keep as big as possible, or you'll get precision issues.
 		100.0f             // Far clipping plane. Keep as little as possible.
@@ -145,13 +150,15 @@ int main()
 	});
 
 	// Offset and scale
+
+
 	p3d::applyToMesh(data, [](p3d::Vertex& v) {
-		v.x = v.x + .5f;
-		v.y = v.y + .5f;
+		v.x = (v.x + 1) / 2;
+		v.y = (v.y + 1) / 2;
 
 		v.x *= WIDTH;
 		v.y *= HEIGHT;
-	});
+		});
 
 	while (window.isOpen())
 	{
