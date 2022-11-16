@@ -72,22 +72,7 @@ namespace playground3d
 
 		v.x = tempVec.x;
 		v.y = tempVec.y;
-
-	}
-
-	void mulTriByMat(Triangle& tri, const glm::mat4& mat)
-	{
-		mulVecByMat(tri.v0, mat);
-		mulVecByMat(tri.v1, mat);
-		mulVecByMat(tri.v2, mat);
-	}
-
-	void mulMeshByMat(Mesh& mesh, const glm::mat4& mat)
-	{
-		for (auto& tri : mesh.tris)
-		{
-			mulTriByMat(tri, mat);
-		}
+		v.z = tempVec.z;
 	}
 
 	void applyToVec(Vertex& v, std::function<void(Vertex& v)> func)
@@ -112,8 +97,9 @@ namespace playground3d
 
 }
 
-playground3d::Mesh originalData = {
-		{
+playground3d::Mesh originalData
+{
+	{
 		// Front face
 		{
 			{-1, -1, 1},
@@ -194,8 +180,6 @@ int main()
 {
 	sf::RenderWindow window(sf::VideoMode({ WIDTH, HEIGHT }), "Playground 3D", sf::Style::Close);
 
-	
-
 	while (window.isOpen())
 	{
 		window.clear();
@@ -214,6 +198,7 @@ int main()
 
 		static float angle = 0;
 		angle += 0.005f;
+		float angleRad = angle / 180 * PI;
 
 		p3d::Mesh data = originalData;
 
@@ -221,13 +206,16 @@ int main()
 		glm::mat4 model = glm::mat4(1);
 		model = glm::scale(model, glm::vec3(.1f, .1f, .1f));
 		model = glm::translate(model, glm::vec3(0, 0, -5));
-		model = glm::rotate(model, angle / 180 * PI, glm::vec3(0,1,0));
+		model = glm::rotate(model, angleRad, glm::vec3(0,1,0));
+
+		// View
+		glm::mat4 view = glm::lookAt(glm::vec3(cos(angleRad), 1, sin(angleRad)), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 		// Projection
 		glm::mat4 projection = glm::perspective( glm::radians(45.0f), 4.0f / 3.0f,  0.1f, 100.0f);
 
 		// MVP
-		glm::mat4 mvp = projection * model;
+		glm::mat4 mvp = projection * view * model;
 
 		// Project vertices
 		p3d::applyToMesh(data, [&](p3d::Vertex& v) {
@@ -242,7 +230,7 @@ int main()
 			v.x *= WIDTH;
 			v.y *= HEIGHT;
 			});
-		
+
 		p3d::drawMesh(data, window);
 
 		// Finally, display the rendered frame on screen
